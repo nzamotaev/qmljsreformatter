@@ -41,35 +41,13 @@ Q_GLOBAL_STATIC(QVector<Utils::EnvironmentProvider>, environmentProviders)
 
 namespace Utils {
 
-static NameValueMap::iterator findKey(NameValueMap &input, Utils::OsType osType, const QString &key)
-{
-    const Qt::CaseSensitivity casing = (osType == Utils::OsTypeWindows) ? Qt::CaseInsensitive
-                                                                        : Qt::CaseSensitive;
-    for (auto it = input.begin(); it != input.end(); ++it) {
-        if (key.compare(it.key(), casing) == 0)
-            return it;
-    }
-    return input.end();
-}
-
-static NameValueMap::const_iterator findKey(const NameValueMap &input,
-                                            Utils::OsType osType,
-                                            const QString &key)
-{
-    const Qt::CaseSensitivity casing = (osType == Utils::OsTypeWindows) ? Qt::CaseInsensitive
-                                                                        : Qt::CaseSensitive;
-    for (auto it = input.constBegin(); it != input.constEnd(); ++it) {
-        if (key.compare(it.key(), casing) == 0)
-            return it;
-    }
-    return input.constEnd();
-}
-
 QProcessEnvironment Environment::toProcessEnvironment() const
 {
     QProcessEnvironment result;
-    for (auto it = m_values.constBegin(); it != m_values.constEnd(); ++it)
-        result.insert(it.key(), it.value());
+    for (auto it = m_values.constBegin(); it != m_values.constEnd(); ++it) {
+        if (it.value().second)
+            result.insert(it.key().name, expandedValueForKey(key(it)));
+    }
     return result;
 }
 
@@ -88,28 +66,28 @@ void Environment::prependOrSetPath(const QString &value)
 void Environment::appendOrSet(const QString &key, const QString &value, const QString &sep)
 {
     QTC_ASSERT(!key.contains('='), return );
-    auto it = findKey(m_values, m_osType, key);
+    const auto it = findKey(key);
     if (it == m_values.end()) {
-        m_values.insert(key, value);
+        m_values.insert(DictKey(key, nameCaseSensitivity()), qMakePair(value, true));
     } else {
         // Append unless it is already there
         const QString toAppend = sep + value;
-        if (!it.value().endsWith(toAppend))
-            it.value().append(toAppend);
+        if (!it.value().first.endsWith(toAppend))
+            it.value().first.append(toAppend);
     }
 }
 
 void Environment::prependOrSet(const QString &key, const QString &value, const QString &sep)
 {
     QTC_ASSERT(!key.contains('='), return );
-    auto it = findKey(m_values, m_osType, key);
+    const auto it = findKey(key);
     if (it == m_values.end()) {
-        m_values.insert(key, value);
+        m_values.insert(DictKey(key, nameCaseSensitivity()), qMakePair(value, true));
     } else {
         // Prepend unless it is already there
         const QString toPrepend = value + sep;
-        if (!it.value().startsWith(toPrepend))
-            it.value().prepend(toPrepend);
+        if (!it.value().first.startsWith(toPrepend))
+            it.value().first.prepend(toPrepend);
     }
 }
 
@@ -206,7 +184,7 @@ QStringList Environment::appendExeExtensions(const QString &executable) const
         // Check all the executable extensions on windows:
         // PATHEXT is only used if the executable has no extension
         if (fi.suffix().isEmpty()) {
-            const QStringList extensions = value("PATHEXT").split(';');
+            const QStringList extensions = expandedValueForKey("PATHEXT").split(';');
 
             for (const QString &ext : extensions)
                 execs << executable + ext.toLower();
@@ -234,8 +212,13 @@ bool Environment::isSameExecutable(const QString &exe1, const QString &exe2) con
     return false;
 }
 
+QString Environment::expandedValueForKey(const QString &key) const
+{
+    return expandVariables(value(key));
+}
+
 FilePath Environment::searchInPath(const QString &executable,
-                                   const FilePathList &additionalDirs,
+                                   const FilePaths &additionalDirs,
                                    const PathFilter &func) const
 {
     if (executable.isEmpty())
@@ -273,11 +256,55 @@ FilePath Environment::searchInPath(const QString &executable,
     return FilePath();
 }
 
-FilePathList Environment::path() const
+FilePaths Environment::findAllInPath(const QString &executable,
+                                        const FilePaths &additionalDirs,
+                                        const Environment::PathFilter &func) const
 {
-    const QStringList pathComponents = value("PATH")
+    if (executable.isEmpty())
+        return {};
+
+    const QString exec = QDir::cleanPath(expandVariables(executable));
+    const QFileInfo fi(exec);
+
+    const QStringList execs = appendExeExtensions(exec);
+
+    if (fi.isAbsolute()) {
+        for (const QString &path : execs) {
+            QFileInfo pfi = QFileInfo(path);
+            if (pfi.isFile() && pfi.isExecutable())
+                return {FilePath::fromString(path)};
+        }
+        return {FilePath::fromString(exec)};
+    }
+
+    QSet<FilePath> result;
+    QSet<FilePath> alreadyChecked;
+    for (const FilePath &dir : additionalDirs) {
+        FilePath tmp = searchInDirectory(execs, dir, alreadyChecked);
+        if (!tmp.isEmpty() && (!func || func(tmp)))
+            result << tmp;
+    }
+
+    if (!executable.contains('/')) {
+        for (const FilePath &p : path()) {
+            FilePath tmp = searchInDirectory(execs, p, alreadyChecked);
+            if (!tmp.isEmpty() && (!func || func(tmp)))
+                result << tmp;
+        }
+    }
+    return result.values();
+}
+
+FilePaths Environment::path() const
+{
+    return pathListValue("PATH");
+}
+
+FilePaths Environment::pathListValue(const QString &varName) const
+{
+    const QStringList pathComponents = expandedValueForKey(varName)
             .split(OsSpecificAspects::pathListSeparator(m_osType), QString::SkipEmptyParts);
-    return Utils::transform(pathComponents, &FilePath::fromUserInput);
+    return transform(pathComponents, &FilePath::fromUserInput);
 }
 
 void Environment::modifySystemEnvironment(const EnvironmentItems &list)
@@ -300,10 +327,10 @@ QString Environment::expandVariables(const QString &input) const
         for (int vStart = -1, i = 0; i < result.length(); ) {
             if (result.at(i++) == '%') {
                 if (vStart > 0) {
-                    const_iterator it = findKey(m_values, m_osType, result.mid(vStart, i - vStart - 1));
+                    const auto it = findKey(result.mid(vStart, i - vStart - 1));
                     if (it != m_values.constEnd()) {
-                        result.replace(vStart - 1, i - vStart + 1, *it);
-                        i = vStart - 1 + it->length();
+                        result.replace(vStart - 1, i - vStart + 1, it->first);
+                        i = vStart - 1 + it->first.length();
                         vStart = -1;
                     } else {
                         vStart = i;
@@ -334,28 +361,28 @@ QString Environment::expandVariables(const QString &input) const
                 }
             } else if (state == BRACEDVARIABLE) {
                 if (c == '}') {
-                    const_iterator it = m_values.constFind(result.mid(vStart, i - 1 - vStart));
+                    const_iterator it = constFind(result.mid(vStart, i - 1 - vStart));
                     if (it != constEnd()) {
-                        result.replace(vStart - 2, i - vStart + 2, *it);
-                        i = vStart - 2 + it->length();
+                        result.replace(vStart - 2, i - vStart + 2, it->first);
+                        i = vStart - 2 + it->first.length();
                     }
                     state = BASE;
                 }
             } else if (state == VARIABLE) {
                 if (!c.isLetterOrNumber() && c != '_') {
-                    const_iterator it = m_values.constFind(result.mid(vStart, i - vStart - 1));
+                    const_iterator it = constFind(result.mid(vStart, i - vStart - 1));
                     if (it != constEnd()) {
-                        result.replace(vStart - 1, i - vStart, *it);
-                        i = vStart - 1 + it->length();
+                        result.replace(vStart - 1, i - vStart, it->first);
+                        i = vStart - 1 + it->first.length();
                     }
                     state = BASE;
                 }
             }
         }
         if (state == VARIABLE) {
-            const_iterator it = m_values.constFind(result.mid(vStart));
+            const_iterator it = constFind(result.mid(vStart));
             if (it != constEnd())
-                result.replace(vStart - 1, result.length() - vStart + 1, *it);
+                result.replace(vStart - 1, result.length() - vStart + 1, it->first);
         }
     }
     return result;

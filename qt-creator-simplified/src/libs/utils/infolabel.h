@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2019 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt Creator.
@@ -25,31 +25,40 @@
 
 #pragma once
 
-#include <utils/hostosinfo.h>
+#include "utils_global.h"
 
-#include <QPoint>
-#include <QRect>
-#include <QWidget>
-#include <QApplication>
-#include <QDesktopWidget>
+#include "elidinglabel.h"
 
 namespace Utils {
-namespace Internal {
 
-inline int screenNumber(const QPoint &pos, QWidget *w)
+class QTCREATOR_UTILS_EXPORT InfoLabel : public ElidingLabel
 {
-    if (QApplication::desktop()->isVirtualDesktop())
-        return QApplication::desktop()->screenNumber(pos);
-    else
-        return QApplication::desktop()->screenNumber(w);
-}
+public:
+    enum InfoType {
+        Information,
+        Warning,
+        Error,
+        Ok,
+        NotOk,
+        None
+    };
 
-inline QRect screenGeometry(const QPoint &pos, QWidget *w)
-{
-    if (HostOsInfo::isMacHost())
-        return QApplication::desktop()->availableGeometry(screenNumber(pos, w));
-    return QApplication::desktop()->screenGeometry(screenNumber(pos, w));
-}
+    explicit InfoLabel(QWidget *parent);
+    explicit InfoLabel(const QString &text = {}, InfoType type = Information,
+                       QWidget *parent = nullptr);
 
-} // namespace Internal
+    InfoType type() const;
+    void setType(InfoType type);
+    bool filled() const;
+    void setFilled(bool filled);
+    QSize minimumSizeHint() const override;
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+
+private:
+    InfoType m_type = Information;
+    bool m_filled = false;
+};
+
 } // namespace Utils

@@ -76,11 +76,11 @@ void NamePrettyPrinter::visit(const TemplateNameId *name)
     else
         _name = QLatin1String("anonymous");
     _name += QLatin1Char('<');
-    for (unsigned index = 0; index < name->templateArgumentCount(); ++index) {
+    for (int index = 0; index < name->templateArgumentCount(); ++index) {
         if (index != 0)
             _name += QLatin1String(", ");
 
-        FullySpecifiedType argTy = name->templateArgumentAt(index);
+        FullySpecifiedType argTy = name->templateArgumentAt(index).type();
         QString arg = overview()->prettyType(argTy);
         if (arg.isEmpty())
             _name += QString::fromLatin1("_Tp%1").arg(index + 1);
@@ -253,7 +253,7 @@ void NamePrettyPrinter::visit(const QualifiedNameId *name)
 
 void NamePrettyPrinter::visit(const SelectorNameId *name)
 {
-    for (unsigned i = 0; i < name->nameCount(); ++i) {
+    for (int i = 0; i < name->nameCount(); ++i) {
         const Name *n = name->nameAt(i);
         if (!n)
             continue;

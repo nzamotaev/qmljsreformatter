@@ -24,6 +24,7 @@ win32: LIBS += -liphlpapi -lws2_32
 SOURCES += \
     $$PWD/globalfilechangeblocker.cpp \
     $$PWD/benchmarker.cpp \
+    $$PWD/displayname.cpp \
     $$PWD/environment.cpp \
     $$PWD/environmentmodel.cpp \
     $$PWD/environmentdialog.cpp \
@@ -54,7 +55,6 @@ SOURCES += \
     $$PWD/projectintropage.cpp \
     $$PWD/filenamevalidatinglineedit.cpp \
     $$PWD/codegeneration.cpp \
-    $$PWD/newclasswidget.cpp \
     $$PWD/classnamevalidatinglineedit.cpp \
     $$PWD/fancylineedit.cpp \
     $$PWD/qtcolorbutton.cpp \
@@ -130,16 +130,18 @@ SOURCES += \
     $$PWD/removefiledialog.cpp \
     $$PWD/differ.cpp \
     $$PWD/jsontreeitem.cpp \
-    $$PWD/namevaluevalidator.cpp
-
-win32:SOURCES += $$PWD/consoleprocess_win.cpp
-else:SOURCES += $$PWD/consoleprocess_unix.cpp
+    $$PWD/namevaluevalidator.cpp \
+    $$PWD/camelcasecursor.cpp \
+    $$PWD/infolabel.cpp \
+    $$PWD/overlaywidget.cpp \
+    $$PWD/archive.cpp
 
 HEADERS += \
     $$PWD/environmentfwd.h \
     $$PWD/genericconstants.h \
     $$PWD/globalfilechangeblocker.h \
     $$PWD/benchmarker.h \
+    $$PWD/displayname.h \
     $$PWD/environment.h \
     $$PWD/environmentmodel.h \
     $$PWD/environmentdialog.h \
@@ -173,13 +175,11 @@ HEADERS += \
     $$PWD/projectintropage.h \
     $$PWD/filenamevalidatinglineedit.h \
     $$PWD/codegeneration.h \
-    $$PWD/newclasswidget.h \
     $$PWD/classnamevalidatinglineedit.h \
     $$PWD/fancylineedit.h \
     $$PWD/qtcolorbutton.h \
     $$PWD/savedaction.h \
     $$PWD/consoleprocess.h \
-    $$PWD/consoleprocess_p.h \
     $$PWD/synchronousprocess.h \
     $$PWD/savefile.h \
     $$PWD/fileutils.h \
@@ -223,7 +223,6 @@ HEADERS += \
     $$PWD/elidinglabel.h \
     $$PWD/tooltip/tooltip.h \
     $$PWD/tooltip/tips.h \
-    $$PWD/tooltip/reuse.h \
     $$PWD/tooltip/effects.h \
     $$PWD/unixutils.h \
     $$PWD/ansiescapecodehandler.h \
@@ -280,10 +279,13 @@ HEADERS += \
     $$PWD/cpplanguage_details.h \
     $$PWD/jsontreeitem.h \
     $$PWD/listmodel.h \
-    $$PWD/namevaluevalidator.h
+    $$PWD/namevaluevalidator.h \
+    $$PWD/camelcasecursor.h \
+    $$PWD/infolabel.h \
+    $$PWD/overlaywidget.h \
+    $$PWD/archive.h
 
 FORMS += $$PWD/filewizardpage.ui \
-    $$PWD/newclasswidget.ui \
     $$PWD/projectintropage.ui \
     $$PWD/proxycredentialsdialog.ui \
     $$PWD/removefiledialog.ui

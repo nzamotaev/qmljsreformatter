@@ -28,6 +28,8 @@
 #include "theme/theme.h"
 #include "hostosinfo.h"
 
+#include <utils/qtcassert.h>
+
 #include <QPixmapCache>
 #include <QPainter>
 #include <QApplication>
@@ -35,6 +37,7 @@
 #include <QCommonStyle>
 #include <QStyleOption>
 #include <QWindow>
+#include <QFontDatabase>
 #include <qmath.h>
 
 // Clamps float color values within (0, 255)
@@ -542,6 +545,48 @@ QLinearGradient StyleHelper::statusBarGradient(const QRect &statusBarRect)
     return grad;
 }
 
+QIcon StyleHelper::getIconFromIconFont(const QString &fontName, const QString &iconSymbol, int fontSize, int iconSize, QColor color)
+{
+    QFontDatabase a;
+
+    QTC_ASSERT(a.hasFamily(fontName), {});
+
+    if (a.hasFamily(fontName)) {
+
+        QIcon icon;
+        QSize size(iconSize, iconSize);
+
+        const int maxDpr = qRound(qApp->devicePixelRatio());
+        for (int dpr = 1; dpr <= maxDpr; dpr++) {
+            QPixmap pixmap(size * dpr);
+            pixmap.setDevicePixelRatio(dpr);
+            pixmap.fill(Qt::transparent);
+
+            QFont font(fontName);
+            font.setPixelSize(fontSize);
+
+            QPainter painter(&pixmap);
+            painter.save();
+            painter.setPen(color);
+            painter.setFont(font);
+            painter.drawText(QRectF(QPoint(0, 0), size), iconSymbol);
+            painter.restore();
+
+            icon.addPixmap(pixmap);
+        }
+
+        return icon;
+    }
+
+    return {};
+}
+
+QIcon StyleHelper::getIconFromIconFont(const QString &fontName, const QString &iconSymbol, int fontSize, int iconSize)
+{
+    QColor penColor = QApplication::palette("QWidget").color(QPalette::Normal, QPalette::ButtonText);
+    return getIconFromIconFont(fontName, iconSymbol, fontSize, iconSize, penColor);
+}
+
 QString StyleHelper::dpiSpecificImageFile(const QString &fileName)
 {
     // See QIcon::addFile()
@@ -571,6 +616,41 @@ QList<int> StyleHelper::availableImageResolutions(const QString &fileName)
         if (QFile::exists(imageFileWithResolution(fileName, i)))
             result.append(i);
     return result;
+}
+
+double StyleHelper::luminance(const QColor &color)
+{
+    // calculate the luminance based on
+    // https://www.w3.org/TR/2008/REC-WCAG20-20081211/#relativeluminancedef
+    auto val = [](const double &colorVal) {
+        return colorVal < 0.03928 ? colorVal / 12.92 : std::pow((colorVal + 0.055) / 1.055, 2.4);
+    };
+
+    static QHash<QRgb, double> cache;
+    QHash<QRgb, double>::iterator it = cache.find(color.rgb());
+    if (it == cache.end()) {
+        it = cache.insert(color.rgb(), 0.2126 * val(color.redF())
+                          + 0.7152 * val(color.greenF())
+                          + 0.0722 * val(color.blueF()));
+    }
+    return it.value();
+}
+
+static double contrastRatio(const QColor &color1, const QColor &color2)
+{
+    // calculate the contrast ratio based on
+    // https://www.w3.org/TR/2008/REC-WCAG20-20081211/#contrast-ratiodef
+    auto contrast = (StyleHelper::luminance(color1) + .05) / (StyleHelper::luminance(color2) + .05);
+    if (contrast < 1)
+        return 1 / contrast;
+    return contrast;
+}
+
+bool StyleHelper::isReadableOn(const QColor &background, const QColor &foreground)
+{
+    // following the W3C Recommendation on contrast for large Text
+    // https://www.w3.org/TR/2008/REC-WCAG20-20081211/#contrast-ratiodef
+    return contrastRatio(background, foreground) > 3;
 }
 
 } // namespace Utils

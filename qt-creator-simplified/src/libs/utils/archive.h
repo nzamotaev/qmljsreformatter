@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of Qt Creator.
@@ -25,45 +25,18 @@
 
 #pragma once
 
-#include <QtCore/qurl.h>
-#include <QtCore/qstring.h>
+#include "utils_global.h"
 
-QT_BEGIN_NAMESPACE
+#include "fileutils.h"
 
-// ### Qt 6: should this be called QmlMessage, since it can have a message type?
-class QDebug;
-class QmlErrorPrivate;
-class QmlError
+namespace Utils {
+
+class QTCREATOR_UTILS_EXPORT Archive
 {
+    Q_DECLARE_TR_FUNCTIONS(Utils::Archive)
 public:
-    QmlError();
-    QmlError(const QmlError &);
-    QmlError &operator=(const QmlError &);
-    ~QmlError();
-
-    bool isValid() const;
-
-    QUrl url() const;
-    void setUrl(const QUrl &);
-    QString description() const;
-    void setDescription(const QString &);
-    int line() const;
-    void setLine(int);
-    int column() const;
-    void setColumn(int);
-    QObject *object() const;
-    void setObject(QObject *);
-    QtMsgType messageType() const;
-    void setMessageType(QtMsgType messageType);
-
-    QString toString() const;
-private:
-    QmlErrorPrivate *d;
+    static bool supportsFile(const FilePath &filePath, QString *reason = nullptr);
+    static bool unarchive(const FilePath &src, const FilePath &dest, QWidget *parent);
 };
 
-QDebug operator<<(QDebug debug, const QmlError &error);
-
-Q_DECLARE_TYPEINFO(QmlError, Q_MOVABLE_TYPE);
-
-QT_END_NAMESPACE
-
+} // namespace Utils

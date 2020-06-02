@@ -31,9 +31,23 @@
 
 namespace Utils {
 
+class QTCREATOR_UTILS_EXPORT DictKey
+{
+public:
+    DictKey(const QString &name, Qt::CaseSensitivity cs) : name(name), caseSensitivity(cs) {}
+
+    QString name;
+    Qt::CaseSensitivity caseSensitivity;
+};
+inline bool operator<(const DictKey &k1, const DictKey &k2)
+{
+    return k1.name.compare(k2.name, k1.caseSensitivity) < 0;
+}
+inline bool operator>(const DictKey &k1, const DictKey &k2) { return k2 < k1; }
+
 using NameValuePair = std::pair<QString, QString>;
 using NameValuePairs = QVector<NameValuePair>;
-using NameValueMap = QMap<QString, QString>;
+using NameValueMap = QMap<DictKey, QPair<QString, bool>>;
 
 class QTCREATOR_UTILS_EXPORT NameValueDictionary
 {
@@ -48,31 +62,27 @@ public:
 
     QStringList toStringList() const;
     QString value(const QString &key) const;
-    void set(const QString &key, const QString &value);
+    void set(const QString &key, const QString &value, bool enabled = true);
     void unset(const QString &key);
     void modify(const NameValueItems &items);
     /// Return the KeyValueDictionary changes necessary to modify this into the other environment.
     NameValueItems diff(const NameValueDictionary &other, bool checkAppendPrepend = false) const;
     bool hasKey(const QString &key) const;
     OsType osType() const;
+    Qt::CaseSensitivity nameCaseSensitivity() const;
 
     QString userName() const;
 
     void clear();
     int size() const;
 
-    QString key(NameValueDictionary::const_iterator it) const { return it.key(); }
+    QString key(const_iterator it) const { return it.key().name; }
+    QString value(const_iterator it) const { return it.value().first; }
+    bool isEnabled(const_iterator it) const { return it.value().second; }
 
-    QString value(NameValueDictionary::const_iterator it) const { return it.value(); }
-
-    NameValueDictionary::const_iterator constBegin() const { return m_values.constBegin(); }
-
-    NameValueDictionary::const_iterator constEnd() const { return m_values.constEnd(); }
-
-    NameValueDictionary::const_iterator constFind(const QString &name) const;
-
-    QString expandVariables(const QString &input) const;
-    QStringList expandVariables(const QStringList &input) const;
+    const_iterator constBegin() const { return m_values.constBegin(); }
+    const_iterator constEnd() const { return m_values.constEnd(); }
+    const_iterator constFind(const QString &name) const;
 
     friend bool operator!=(const NameValueDictionary &first, const NameValueDictionary &second)
     {
@@ -85,6 +95,9 @@ public:
     }
 
 protected:
+    NameValueMap::iterator findKey(const QString &key);
+    const_iterator findKey(const QString &key) const;
+
     NameValueMap m_values;
     OsType m_osType;
 };

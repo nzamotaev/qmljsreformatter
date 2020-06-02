@@ -61,7 +61,7 @@ NameValueItemsWidget::NameValueItemsWidget(QWidget *parent)
 {
     m_editor = new QPlainTextEdit(this);
     auto layout = new QVBoxLayout(this);
-    layout->setMargin(0);
+    layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(m_editor);
 }
 
@@ -89,7 +89,6 @@ void NameValueItemsWidget::setPlaceholderText(const QString &text)
 NameValuesDialog::NameValuesDialog(const QString &windowTitle, const QString &helpText, QWidget *parent)
     : QDialog(parent)
 {
-    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     resize(640, 480);
     m_editor = new Internal::NameValueItemsWidget(this);
     auto box = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,

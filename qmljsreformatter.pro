@@ -102,7 +102,6 @@ SOURCES += \
     $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/languageutils/fakemetaobject.cpp
 
 SOURCES += \
-    $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/qmljs/parser/qmlerror.cpp \
     $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/qmljs/parser/qmljsast.cpp \
     $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/qmljs/parser/qmljsastvisitor.cpp \
     $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/qmljs/parser/qmldirparser.cpp \
@@ -130,8 +129,7 @@ SOURCES += \
     $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/qmljs/qmljsscopechain.cpp \
     $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/qmljs/qmljstypedescriptionreader.cpp \
     $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/qmljs/qmljsutils.cpp \
-    $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/qmljs/qmljsvalueowner.cpp \
-    $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/qmljs/qmljsviewercontext.cpp
+    $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/qmljs/qmljsvalueowner.cpp 
 
 SOURCES += src/main.cpp
 

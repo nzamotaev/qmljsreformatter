@@ -38,6 +38,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <QHash>
 #include <QObject>
 #include <QSet>
 #include <QStringList>
@@ -1259,4 +1260,53 @@ OutputIterator set_union(InputIterator1 first1,
     return Utils::set_union_impl(
         first1, last1, first2, last2, result, std::less<typename InputIterator1::value_type>{});
 }
+
+// Replacement for deprecated Qt functionality
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+template <class T>
+QSet<T> toSet(const QList<T> &list)
+{
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    return list.toSet();
+#else
+    return QSet<T>(list.begin(), list.end());
+#endif
+}
+#endif
+
+template<class T>
+QSet<T> toSet(const QVector<T> &vec)
+{
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    QSet<T> result;
+    for (const T &p : vec) {
+        result.insert(p);
+    }
+    return result;
+#else
+    return QSet<T>(vec.begin(), vec.end());
+#endif
+}
+
+template<class T>
+QList<T> toList(const QSet<T> &set)
+{
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    return set.toList();
+#else
+    return QList<T>(set.begin(), set.end());
+#endif
+}
+
+template <class Key, class T>
+void addToHash(QHash<Key, T> *result, const QHash<Key, T> &additionalContents)
+{
+#if (QT_VERSION < QT_VERSION_CHECK(5, 15, 0))
+    result->unite(additionalContents);
+#else
+    result->insert(additionalContents);
+#endif
+}
+
 } // namespace Utils

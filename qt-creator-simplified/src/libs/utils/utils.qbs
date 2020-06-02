@@ -44,12 +44,16 @@ Project {
             "ansiescapecodehandler.h",
             "appmainwindow.cpp",
             "appmainwindow.h",
+            "archive.cpp",
+            "archive.h",
             "basetreeview.cpp",
             "basetreeview.h",
             "benchmarker.cpp",
             "benchmarker.h",
             "buildablehelperlibrary.cpp",
             "buildablehelperlibrary.h",
+            "camelcasecursor.cpp",
+            "camelcasecursor.h",
             "categorysortfiltermodel.cpp",
             "categorysortfiltermodel.h",
             "changeset.cpp",
@@ -66,7 +70,6 @@ Project {
             "completingtextedit.h",
             "consoleprocess.cpp",
             "consoleprocess.h",
-            "consoleprocess_p.h",
             "cpplanguage_details.h",
             "crumblepath.cpp",
             "crumblepath.h",
@@ -79,6 +82,8 @@ Project {
             "detailswidget.h",
             "differ.cpp",
             "differ.h",
+            "displayname.cpp",
+            "displayname.h",
             "dropsupport.cpp",
             "dropsupport.h",
             "elfreader.cpp",
@@ -138,6 +143,8 @@ Project {
             "htmldocextractor.h",
             "icon.cpp",
             "icon.h",
+            "infolabel.cpp",
+            "infolabel.h",
             "itemviews.cpp",
             "itemviews.h",
             "json.cpp",
@@ -165,15 +172,14 @@ Project {
             "navigationtreeview.h",
             "networkaccessmanager.cpp",
             "networkaccessmanager.h",
-            "newclasswidget.cpp",
-            "newclasswidget.h",
-            "newclasswidget.ui",
             "optional.h",
             "../3rdparty/optional/optional.hpp",
             "osspecificaspects.h",
             "outputformat.h",
             "outputformatter.cpp",
             "outputformatter.h",
+            "overlaywidget.cpp",
+            "overlaywidget.h",
             "overridecursor.cpp",
             "overridecursor.h",
             "parameteraction.cpp",
@@ -305,27 +311,10 @@ Project {
             prefix: "tooltip/"
             files: [
                 "effects.h",
-                "reuse.h",
                 "tips.cpp",
                 "tips.h",
                 "tooltip.cpp",
                 "tooltip.h",
-            ]
-        }
-
-        Group {
-            name: "WindowsUtils"
-            condition: qbs.targetOS.contains("windows")
-            files: [
-                "consoleprocess_win.cpp",
-            ]
-        }
-
-        Group {
-            name: "ConsoleProcess_unix"
-            condition: qbs.targetOS.contains("unix")
-            files: [
-                "consoleprocess_unix.cpp",
             ]
         }
 

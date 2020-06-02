@@ -31,30 +31,6 @@
 
 namespace Utils {
 
-namespace {
-NameValueMap::iterator findKey(NameValueMap &input, Utils::OsType osType, const QString &key)
-{
-    const Qt::CaseSensitivity casing = (osType == Utils::OsTypeWindows) ? Qt::CaseInsensitive
-                                                                        : Qt::CaseSensitive;
-    for (auto it = input.begin(); it != input.end(); ++it) {
-        if (key.compare(it.key(), casing) == 0)
-            return it;
-    }
-    return input.end();
-}
-
-NameValueMap::const_iterator findKey(const NameValueMap &input, Utils::OsType osType, const QString &key)
-{
-    const Qt::CaseSensitivity casing = (osType == Utils::OsTypeWindows) ? Qt::CaseInsensitive
-                                                                        : Qt::CaseSensitive;
-    for (auto it = input.constBegin(); it != input.constEnd(); ++it) {
-        if (key.compare(it.key(), casing) == 0)
-            return it;
-    }
-    return input.constEnd();
-}
-} // namespace
-
 NameValueDictionary::NameValueDictionary(const QStringList &env, OsType osType)
     : m_osType(osType)
 {
@@ -76,28 +52,49 @@ NameValueDictionary::NameValueDictionary(const NameValuePairs &nameValues)
         set(nameValue.first, nameValue.second);
 }
 
+NameValueMap::iterator NameValueDictionary::findKey(const QString &key)
+{
+    for (auto it = m_values.begin(); it != m_values.end(); ++it) {
+        if (key.compare(it.key().name, nameCaseSensitivity()) == 0)
+            return it;
+    }
+    return m_values.end();
+}
+
+NameValueMap::const_iterator NameValueDictionary::findKey(const QString &key) const
+{
+    for (auto it = m_values.constBegin(); it != m_values.constEnd(); ++it) {
+        if (key.compare(it.key().name, nameCaseSensitivity()) == 0)
+            return it;
+    }
+    return m_values.constEnd();
+}
+
 QStringList NameValueDictionary::toStringList() const
 {
     QStringList result;
-    for (auto it = m_values.constBegin(); it != m_values.constEnd(); ++it)
-        result.append(it.key() + '=' + it.value());
+    for (auto it = m_values.constBegin(); it != m_values.constEnd(); ++it) {
+        if (it.value().second)
+            result.append(it.key().name + '=' + it.value().first);
+    }
     return result;
 }
 
-void NameValueDictionary::set(const QString &key, const QString &value)
+void NameValueDictionary::set(const QString &key, const QString &value, bool enabled)
 {
     QTC_ASSERT(!key.contains('='), return );
-    auto it = findKey(m_values, m_osType, key);
+    const auto it = findKey(key);
+    const auto valuePair = qMakePair(value, enabled);
     if (it == m_values.end())
-        m_values.insert(key, value);
+        m_values.insert(DictKey(key, nameCaseSensitivity()), valuePair);
     else
-        it.value() = value;
+        it.value() = valuePair;
 }
 
 void NameValueDictionary::unset(const QString &key)
 {
     QTC_ASSERT(!key.contains('='), return );
-    auto it = findKey(m_values, m_osType, key);
+    const auto it = findKey(key);
     if (it != m_values.end())
         m_values.erase(it);
 }
@@ -109,13 +106,13 @@ void NameValueDictionary::clear()
 
 QString NameValueDictionary::value(const QString &key) const
 {
-    const auto it = findKey(m_values, m_osType, key);
-    return it != m_values.end() ? it.value() : QString();
+    const auto it = findKey(key);
+    return it != m_values.end() && it.value().second ? it.value().first : QString();
 }
 
 NameValueDictionary::const_iterator NameValueDictionary::constFind(const QString &name) const
 {
-    return findKey(m_values, m_osType, name);
+    return findKey(name);
 }
 
 int NameValueDictionary::size() const
@@ -131,14 +128,6 @@ void NameValueDictionary::modify(const NameValueItems &items)
     *this = resultKeyValueDictionary;
 }
 
-enum : char {
-#ifdef Q_OS_WIN
-    pathSepC = ';'
-#else
-    pathSepC = ':'
-#endif
-};
-
 NameValueItems NameValueDictionary::diff(const NameValueDictionary &other, bool checkAppendPrepend) const
 {
     NameValueMap::const_iterator thisIt = constBegin();
@@ -147,33 +136,40 @@ NameValueItems NameValueDictionary::diff(const NameValueDictionary &other, bool 
     NameValueItems result;
     while (thisIt != constEnd() || otherIt != other.constEnd()) {
         if (thisIt == constEnd()) {
-            result.append(NameValueItem(otherIt.key(), otherIt.value()));
+            result.append({other.key(otherIt), other.value(otherIt),
+                otherIt.value().second ? NameValueItem::SetEnabled : NameValueItem::SetDisabled});
             ++otherIt;
         } else if (otherIt == other.constEnd()) {
-            result.append(NameValueItem(thisIt.key(), QString(), NameValueItem::Unset));
+            result.append(NameValueItem(key(thisIt), QString(), NameValueItem::Unset));
             ++thisIt;
         } else if (thisIt.key() < otherIt.key()) {
-            result.append(NameValueItem(thisIt.key(), QString(), NameValueItem::Unset));
+            result.append(NameValueItem(key(thisIt), QString(), NameValueItem::Unset));
             ++thisIt;
         } else if (thisIt.key() > otherIt.key()) {
-            result.append(NameValueItem(otherIt.key(), otherIt.value()));
+            result.append({other.key(otherIt), otherIt.value().first,
+                otherIt.value().second ? NameValueItem::SetEnabled : NameValueItem::SetDisabled});
             ++otherIt;
         } else {
-            const QString &oldValue = thisIt.value();
-            const QString &newValue = otherIt.value();
+            const QString &oldValue = thisIt.value().first;
+            const QString &newValue = otherIt.value().first;
+            const bool oldEnabled = thisIt.value().second;
+            const bool newEnabled = otherIt.value().second;
             if (oldValue != newValue) {
-                if (checkAppendPrepend && newValue.startsWith(oldValue)) {
+                if (checkAppendPrepend && newValue.startsWith(oldValue)
+                        && oldEnabled == newEnabled) {
                     QString appended = newValue.right(newValue.size() - oldValue.size());
-                    if (appended.startsWith(QLatin1Char(pathSepC)))
+                    if (appended.startsWith(OsSpecificAspects::pathListSeparator(osType())))
                         appended.remove(0, 1);
-                    result.append(NameValueItem(otherIt.key(), appended, NameValueItem::Append));
-                } else if (checkAppendPrepend && newValue.endsWith(oldValue)) {
+                    result.append(NameValueItem(other.key(otherIt), appended, NameValueItem::Append));
+                } else if (checkAppendPrepend && newValue.endsWith(oldValue)
+                           && oldEnabled == newEnabled) {
                     QString prepended = newValue.left(newValue.size() - oldValue.size());
-                    if (prepended.endsWith(QLatin1Char(pathSepC)))
+                    if (prepended.endsWith(OsSpecificAspects::pathListSeparator(osType())))
                         prepended.chop(1);
-                    result.append(NameValueItem(otherIt.key(), prepended, NameValueItem::Prepend));
+                    result.append(NameValueItem(other.key(otherIt), prepended, NameValueItem::Prepend));
                 } else {
-                    result.append(NameValueItem(otherIt.key(), newValue));
+                    result.append({other.key(otherIt), newValue, newEnabled
+                            ? NameValueItem::SetEnabled : NameValueItem::SetDisabled});
                 }
             }
             ++otherIt;
@@ -185,7 +181,7 @@ NameValueItems NameValueDictionary::diff(const NameValueDictionary &other, bool 
 
 bool NameValueDictionary::hasKey(const QString &key) const
 {
-    return m_values.contains(key);
+    return findKey(key) != constEnd();
 }
 
 OsType NameValueDictionary::osType() const
@@ -193,90 +189,14 @@ OsType NameValueDictionary::osType() const
     return m_osType;
 }
 
+Qt::CaseSensitivity NameValueDictionary::nameCaseSensitivity() const
+{
+    return OsSpecificAspects::envVarCaseSensitivity(osType());
+}
+
 QString NameValueDictionary::userName() const
 {
     return value(QString::fromLatin1(m_osType == OsTypeWindows ? "USERNAME" : "USER"));
-}
-
-/** Expand environment variables in a string.
- *
- * KeyValueDictionary variables are accepted in the following forms:
- * $SOMEVAR, ${SOMEVAR} on Unix and %SOMEVAR% on Windows.
- * No escapes and quoting are supported.
- * If a variable is not found, it is not substituted.
- */
-QString NameValueDictionary::expandVariables(const QString &input) const
-{
-    QString result = input;
-
-    if (m_osType == OsTypeWindows) {
-        for (int vStart = -1, i = 0; i < result.length();) {
-            if (result.at(i++) == '%') {
-                if (vStart > 0) {
-                    const_iterator it = findKey(m_values, m_osType, result.mid(vStart, i - vStart - 1));
-                    if (it != m_values.constEnd()) {
-                        result.replace(vStart - 1, i - vStart + 1, *it);
-                        i = vStart - 1 + it->length();
-                        vStart = -1;
-                    } else {
-                        vStart = i;
-                    }
-                } else {
-                    vStart = i;
-                }
-            }
-        }
-    } else {
-        enum { BASE, OPTIONALVARIABLEBRACE, VARIABLE, BRACEDVARIABLE } state = BASE;
-        int vStart = -1;
-
-        for (int i = 0; i < result.length();) {
-            QChar c = result.at(i++);
-            if (state == BASE) {
-                if (c == '$')
-                    state = OPTIONALVARIABLEBRACE;
-            } else if (state == OPTIONALVARIABLEBRACE) {
-                if (c == '{') {
-                    state = BRACEDVARIABLE;
-                    vStart = i;
-                } else if (c.isLetterOrNumber() || c == '_') {
-                    state = VARIABLE;
-                    vStart = i - 1;
-                } else {
-                    state = BASE;
-                }
-            } else if (state == BRACEDVARIABLE) {
-                if (c == '}') {
-                    const_iterator it = m_values.constFind(result.mid(vStart, i - 1 - vStart));
-                    if (it != constEnd()) {
-                        result.replace(vStart - 2, i - vStart + 2, *it);
-                        i = vStart - 2 + it->length();
-                    }
-                    state = BASE;
-                }
-            } else if (state == VARIABLE) {
-                if (!c.isLetterOrNumber() && c != '_') {
-                    const_iterator it = m_values.constFind(result.mid(vStart, i - vStart - 1));
-                    if (it != constEnd()) {
-                        result.replace(vStart - 1, i - vStart, *it);
-                        i = vStart - 1 + it->length();
-                    }
-                    state = BASE;
-                }
-            }
-        }
-        if (state == VARIABLE) {
-            const_iterator it = m_values.constFind(result.mid(vStart));
-            if (it != constEnd())
-                result.replace(vStart - 1, result.length() - vStart + 1, *it);
-        }
-    }
-    return result;
-}
-
-QStringList NameValueDictionary::expandVariables(const QStringList &variables) const
-{
-    return Utils::transform(variables, [this](const QString &i) { return expandVariables(i); });
 }
 
 } // namespace Utils

@@ -177,6 +177,9 @@ const char *token_names[] = {
     ("__thread"),
     ("__typeof__"),
 
+    // msvc
+    ("__declspec"),
+
     // objc @keywords
     ("@catch"),
     ("@class"),
@@ -247,7 +250,7 @@ void Token::reset()
     flags = 0;
     byteOffset = 0;
     utf16charOffset = 0;
-    ptr = 0;
+    ptr = nullptr;
 }
 
 const char *Token::name(int kind)

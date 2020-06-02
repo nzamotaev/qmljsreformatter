@@ -45,6 +45,7 @@ public:
     void start();
     void terminate();
     void interrupt();
+    void setLowPriority() { m_lowPriority = true; }
 
     class QTCREATOR_UTILS_EXPORT Arguments
     {
@@ -141,10 +142,18 @@ public:
     };
 
 private:
+#ifdef Q_OS_UNIX
+#  if QT_VERSION < QT_VERSION_CHECK(6,0,0)
+    void setupChildProcess() override;
+#  endif
+    void niceChildProcess();
+#endif
+
     CommandLine m_commandLine;
     Environment m_environment;
     bool m_haveEnv = false;
     bool m_useCtrlCStub = false;
+    bool m_lowPriority = false;
 };
 
 } // namespace Utils

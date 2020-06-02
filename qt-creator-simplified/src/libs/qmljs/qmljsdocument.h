@@ -97,7 +97,7 @@ public:
     QString path() const;
     QString componentName() const;
 
-    QList<AST::SourceLocation> jsDirectives() const;
+    QList<SourceLocation> jsDirectives() const;
 
 private:
     bool parse_helper(int kind);
@@ -111,7 +111,7 @@ private:
     QString _path;
     QString _componentName;
     QString _source;
-    QList<AST::SourceLocation> _jsdirectives;
+    QList<SourceLocation> _jsdirectives;
     QWeakPointer<Document> _ptr;
     QByteArray _fingerprint;
     int _editorRevision;
@@ -150,24 +150,27 @@ public:
     };
 
 private:
-    Status _status;
+    Status _status = NotScanned;
     QList<QmlDirParser::Component> _components;
     QList<QmlDirParser::Plugin> _plugins;
     QList<QmlDirParser::TypeInfo> _typeinfos;
     typedef QList<LanguageUtils::FakeMetaObject::ConstPtr> FakeMetaObjectList;
     FakeMetaObjectList _metaObjects;
     QList<ModuleApiInfo> _moduleApis;
-    QStringList _dependencies;
+    QStringList _dependencies; // from qmltypes "dependencies: [...]"
+    QStringList _imports; // from qmldir "import" commands
     QByteArray _fingerprint;
 
-    PluginTypeInfoStatus _dumpStatus;
+    PluginTypeInfoStatus _dumpStatus = NoTypeInfo;
     QString _dumpError;
 
 public:
     LibraryInfo();
     explicit LibraryInfo(Status status);
+    explicit LibraryInfo(const QmlDirParser::TypeInfo &typeInfo);
     explicit LibraryInfo(const QmlDirParser &parser, const QByteArray &fingerprint = QByteArray());
-    ~LibraryInfo();
+    ~LibraryInfo() = default;
+    LibraryInfo(const LibraryInfo &other) = default;
 
     QByteArray calculateFingerprint() const;
     void updateFingerprint();
@@ -200,6 +203,12 @@ public:
 
     void setDependencies(const QStringList &deps)
     { _dependencies = deps; }
+
+    QStringList imports() const
+    { return _imports; }
+
+    void setImports(const QStringList &imports)
+    { _imports = imports; }
 
     bool isValid() const
     { return _status == Found; }

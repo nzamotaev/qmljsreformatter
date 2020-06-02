@@ -96,15 +96,15 @@ public:
         MenuBarItemTextColorNormal,
         MenuItemTextColorDisabled,
         MenuItemTextColorNormal,
-        MiniProjectTargetSelectorBackgroundColor,
+        MiniProjectTargetSelectorBackgroundColor, // TODO: Deprecate. -> Utils::StyleHelper().baseColor()
         MiniProjectTargetSelectorBorderColor,
-        MiniProjectTargetSelectorSummaryBackgroundColor,
+        MiniProjectTargetSelectorSummaryBackgroundColor, // TODO: Deprecate. -> Utils::StyleHelper().baseColor()
         MiniProjectTargetSelectorTextColor,
         OutputPaneButtonFlashColor,
         OutputPaneToggleButtonTextColorChecked,
         OutputPaneToggleButtonTextColorUnchecked,
         PanelStatusBarBackgroundColor,
-        PanelsWidgetSeparatorLineColor,
+        PanelsWidgetSeparatorLineColor, // TODO: Deprecate. Unused.
         PanelTextColorDark,
         PanelTextColorMid,
         PanelTextColorLight,
@@ -279,6 +279,13 @@ public:
         VcsBase_FileRenamed_TextColor,
         VcsBase_FileUnmerged_TextColor,
 
+        /* Git Plugin */
+        Git_AuthorName_TextColor,
+        Git_CommitDate_TextColor,
+        Git_CommitHash_TextColor,
+        Git_CommitSubject_TextColor,
+        Git_Decoration_TextColor,
+
         /* Bookmarks Plugin */
         Bookmarks_TextMarkColor,
 
@@ -306,7 +313,43 @@ public:
         QmlDesigner_BorderColor,
         QmlDesigner_FormeditorBackgroundColor,
         QmlDesigner_AlternateBackgroundColor,
-        QmlDesigner_ScrollBarHandleColor
+        QmlDesigner_ScrollBarHandleColor,
+
+        /* Palette for DS Controls */
+
+        DScontrolBackground,
+        DScontrolOutline,
+        DStextColor,
+        DSdisabledTextColor,
+        DSpanelBackground,
+        DShoverHighlight,
+        DScolumnBackground,
+        DSfocusEdit,
+        DSfocusDrag,
+        DScontrolBackgroundPressed,
+        DScontrolBackgroundChecked,
+        DSinteraction,
+        DSsliderActiveTrack,
+        DSsliderInactiveTrack,
+        DSsliderHandle,
+        DSsliderActiveTrackHover,
+        DSsliderInactiveTrackHover,
+        DSsliderHandleHover,
+        DSsliderActiveTrackFocus,
+        DSsliderInactiveTrackFocus,
+        DSsliderHandleFocus,
+        DSerrorColor,
+        DScontrolBackgroundDisabled,
+        DScontrolOutlineDisabled,
+        DStextColorDisabled,
+        DStextSelectionColor,
+        DStextSelectedTextColor,
+        DSscrollBarTrack,
+        DSscrollBarHandle,
+        DScontrolBackgroundInteraction,
+        DStranslationIndicatorBorder,
+        DSsectionHeadBackground,
+        DSchangedStateText
     };
 
     enum Gradient {
