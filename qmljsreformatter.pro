@@ -6,6 +6,8 @@ CONFIG += c++14
 
 macx {
    CONFIG -= app_bundle
+   SOURCES += $$QT_CREATOR_SIMPLIFIED_SRC/src/libs/utils/fileutils_mac.mm
+   LIBS += -framework Foundation -framework AppKit
 }
 
 DEFINES += QT_CREATOR
